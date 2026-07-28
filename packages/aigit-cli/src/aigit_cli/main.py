@@ -12,6 +12,7 @@ from rich.table import Table
 
 from aigit_core.diffing import diff_locks, load_lock
 from aigit_core.locking import LockError, load_manifest, write_lock
+from aigit_core.models import json_schema
 from aigit_core.snapshot import create_snapshot
 
 app = typer.Typer(help="Version AI system behavior with manifests, locks, snapshots, and diffs.")
@@ -114,6 +115,13 @@ def diff(before: str, after: str, format: str = typer.Option("human", "--format"
         table.add_row(change["path"], change["class"], str(change["before"]), str(change["after"]))
     console.print(table)
     console.print(f"MEASURED unavailable — {result['measured']['reason']}")
+
+
+@app.command()
+def schema() -> None:
+    """Print the v1 intelligence.yaml JSON Schema."""
+
+    console.print(json.dumps(json_schema(), indent=2, sort_keys=True))
 
 
 @app.command()

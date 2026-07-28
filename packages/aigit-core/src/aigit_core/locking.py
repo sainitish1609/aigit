@@ -7,18 +7,10 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
 from .fingerprint import sha256_digest
-
-ALLOWED_TOP_LEVEL_KEYS = {
-    "apiVersion",
-    "kind",
-    "metadata",
-    "components",
-    "evaluation",
-    "behavior_keys",
-    "environment",
-}
+from .models import IntelligenceManifest
 
 
 class LockError(ValueError):
@@ -30,15 +22,14 @@ def load_manifest(path: Path | str) -> dict[str, Any]:
     data = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         raise LockError("manifest must be a mapping")
-    unknown = sorted(set(data) - ALLOWED_TOP_LEVEL_KEYS)
-    if unknown:
-        raise LockError(f"unknown top-level key(s): {', '.join(unknown)}")
-    if data.get("apiVersion") != "aigit.dev/v1":
-        raise LockError("apiVersion must be aigit.dev/v1")
-    if data.get("kind") != "IntelligenceSystem":
-        raise LockError("kind must be IntelligenceSystem")
-    if not isinstance(data.get("components"), dict) or not data["components"]:
-        raise LockError("components must be a non-empty mapping")
+    try:
+        IntelligenceManifest.model_validate(data)
+    except ValidationError as exc:
+        unknown = [err for err in exc.errors() if err.get("type") == "extra_forbidden"]
+        if unknown:
+            keys = ", ".join(str(err["loc"][0]) for err in unknown)
+            raise LockError(f"unknown top-level key(s): {keys}") from exc
+        raise LockError(str(exc)) from exc
     return data
 
 
