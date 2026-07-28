@@ -1,0 +1,26 @@
+apiVersion: aigit.dev/v1
+kind: IntelligenceSystem
+metadata:
+  name: minimal-agent
+  owner: example
+components:
+  main_model:
+    kind: model
+    provider: openai
+    model: gpt-4.1-2025-04-14
+    params:
+      temperature: 0.2
+      max_tokens: 1024
+  system_prompt:
+    kind: prompt
+    file: prompts/system.md
+    role: system
+behavior_keys:
+  include:
+    - components.*.model
+    - components.*.params.*
+    - components.*.file_digest
+  exclude:
+    - metadata.*
+environment:
+  runtime: python==3.11.*

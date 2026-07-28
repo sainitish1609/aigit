@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+      - name: Run tests
+        run: python -m pytest -q
+      - name: CLI smoke
+        run: |
+          tmpdir=$(mktemp -d)
+          cd "$tmpdir"
+          aigit init
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('intelligence.yaml')
+          p.write_text(p.read_text().replace('model: gpt-4.1', 'model: gpt-4.1-2025-04-14'))
+          PY
+          aigit doctor
+          aigit lock
+          aigit snapshot -m baseline
