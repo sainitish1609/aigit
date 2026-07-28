@@ -292,6 +292,8 @@ Local release preparation:
 
 ```bash
 python -m pytest -q
+python -m build
+python -m twine check dist/*
 git status --short
 git tag -a v0.1.0 -m "v0.1.0"
 ```
@@ -306,8 +308,16 @@ git push origin v0.1.0
 Create GitHub release:
 
 ```bash
-gh release create v0.1.0 --title "v0.1.0" --notes-file RELEASE_NOTES.md
+gh release create v0.1.0 --title "v0.1.0" --notes-file RELEASE_NOTES.md dist/aigit-0.1.0-py3-none-any.whl dist/aigit-0.1.0.tar.gz
 ```
+
+PyPI publishing is handled by `.github/workflows/publish-pypi.yml` when a GitHub release is published. Configure PyPI Trusted Publishing for this repository before the next release:
+
+- PyPI project: `aigit`
+- Owner: `sainitish1609`
+- Repository: `aigit`
+- Workflow: `publish-pypi.yml`
+- Environment: `pypi`
 
 ## Roadmap
 

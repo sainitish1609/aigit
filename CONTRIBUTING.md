@@ -60,7 +60,10 @@ Before submitting:
 - [ ] Update `CHANGELOG.md`.
 - [ ] Update `RELEASE_NOTES.md`.
 - [ ] Run `python -m pytest -q`.
+- [ ] Run `python -m build`.
+- [ ] Run `python -m twine check dist/*`.
 - [ ] Commit changes.
 - [ ] Tag release, e.g. `git tag -a v0.1.0 -m "v0.1.0"`.
 - [ ] Push `main` and tags.
-- [ ] Create GitHub release from `RELEASE_NOTES.md`.
+- [ ] Create GitHub release from `RELEASE_NOTES.md` and attach `dist/*` artifacts.
+- [ ] Confirm `.github/workflows/publish-pypi.yml` publishes to PyPI using Trusted Publishing.
