@@ -22,8 +22,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install aigit
-        run: python -m pip install aigit
+      - name: Install aigit from source
+        run: python -m pip install git+https://github.com/sainitish1609/aigit.git
       - name: Verify intelligence.lock.json
         run: aigit lock --check
 ```
@@ -60,8 +60,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install aigit
-        run: python -m pip install aigit
+      - name: Install aigit from source
+        run: python -m pip install git+https://github.com/sainitish1609/aigit.git
       - name: Build base lockfile
         working-directory: base
         run: aigit lock
@@ -87,7 +87,7 @@ jobs:
             });
 ```
 
-For private package indexes or source installs, replace `python -m pip install aigit` with the install command your project uses, such as `python -m pip install git+https://github.com/sainitish1609/aigit.git`.
+For other install methods, replace the source install command with the command your project uses.
 
 ## Recommended repository policy
 
