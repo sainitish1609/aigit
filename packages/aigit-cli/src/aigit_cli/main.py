@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from aigit_core.diffing import diff_locks, load_lock
-from aigit_core.locking import LockError, load_manifest, write_lock
+from aigit_core.locking import LockError, load_manifest, resolve_lock, write_lock
 from aigit_core.models import json_schema
 from aigit_core.snapshot import create_snapshot
 
@@ -51,6 +51,12 @@ def _manifest_path(path: str) -> Path:
     return Path(path).resolve()
 
 
+def _lock_check_view(lock_data: dict) -> dict:
+    check_data = dict(lock_data)
+    check_data.pop("generated_at", None)
+    return check_data
+
+
 @app.command()
 def init(force: bool = typer.Option(False, "--force", help="Overwrite existing intelligence.yaml.")) -> None:
     """Scaffold an intelligence.yaml and minimal prompt file."""
@@ -75,16 +81,21 @@ def lock(
 ) -> None:
     """Resolve intelligence.yaml into intelligence.lock.json."""
 
+    manifest_path = _manifest_path(manifest)
     try:
-        lock_data = write_lock(_manifest_path(manifest))
+        if check:
+            lock_data = resolve_lock(manifest_path)
+            existing = manifest_path.with_name("intelligence.lock.json")
+            if not existing.exists() or _lock_check_view(json.loads(existing.read_text(encoding="utf-8"))) != _lock_check_view(lock_data):
+                console.print("ERROR  intelligence.lock.json is stale")
+                raise typer.Exit(1)
+            console.print(f"✓ intelligence.lock.json is up to date ({len(lock_data['components'])} components)")
+            console.print(f"snapshot {lock_data['snapshot_id']}")
+            return
+        lock_data = write_lock(manifest_path)
     except LockError as exc:
         console.print(f"ERROR  {exc}")
         raise typer.Exit(1) from exc
-    if check:
-        existing = Path("intelligence.lock.json")
-        if not existing.exists() or json.loads(existing.read_text()) != lock_data:
-            console.print("ERROR  intelligence.lock.json is stale")
-            raise typer.Exit(1)
     console.print(f"✓ intelligence.lock.json written ({len(lock_data['components'])} components)")
     console.print(f"snapshot {lock_data['snapshot_id']}")
 
