@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 import pytest
 import yaml
@@ -70,3 +71,36 @@ def test_metadata_change_does_not_change_behavioral_fingerprint(tmp_path: Path):
 
     assert before["exact_fingerprint"] != after["exact_fingerprint"]
     assert before["behavioral_fingerprint"] == after["behavioral_fingerprint"]
+
+
+def test_resolve_lock_includes_git_metadata_when_manifest_is_in_repo(tmp_path: Path):
+    write_manifest(tmp_path)
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=aigit tests",
+            "-c",
+            "user.email=aigit@example.invalid",
+            "commit",
+            "-m",
+            "initial",
+        ],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+    lock = resolve_lock(tmp_path / "intelligence.yaml")
+
+    assert lock["git"]["commit"]
+    assert lock["git"]["branch"] in {"main", "master"}
+    assert lock["git"]["is_dirty"] is False
+
+    (tmp_path / "prompts" / "system.md").write_text("Changed.\n", encoding="utf-8")
+    dirty_lock = resolve_lock(tmp_path / "intelligence.yaml")
+
+    assert dirty_lock["git"]["commit"] == lock["git"]["commit"]
+    assert dirty_lock["git"]["is_dirty"] is True

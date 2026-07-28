@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -79,6 +80,35 @@ def _behavior_value(component: dict[str, Any]) -> dict[str, Any]:
     return {key: deepcopy(value) for key, value in component.items() if key in keys}
 
 
+def _git_output(root: Path, args: list[str]) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return None
+    return result.stdout.strip()
+
+
+def git_metadata(root: Path) -> dict[str, Any] | None:
+    repo_root = _git_output(root, ["rev-parse", "--show-toplevel"])
+    if not repo_root:
+        return None
+    commit = _git_output(root, ["rev-parse", "HEAD"])
+    branch = _git_output(root, ["branch", "--show-current"])
+    porcelain = _git_output(root, ["status", "--porcelain"])
+    return {
+        "root": str(Path(repo_root).resolve()),
+        "commit": commit,
+        "branch": branch or None,
+        "is_dirty": bool(porcelain),
+    }
+
+
 def resolve_lock(path: Path | str) -> dict[str, Any]:
     manifest_path = Path(path)
     root = manifest_path.parent
@@ -121,7 +151,7 @@ def resolve_lock(path: Path | str) -> dict[str, Any]:
     }
     exact_fingerprint = sha256_digest(exact_payload)
     behavioral_fingerprint = sha256_digest(behavioral_payload)
-    return {
+    lock = {
         "lockfileVersion": 1,
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "generator": "aigit 0.1.0",
@@ -131,6 +161,10 @@ def resolve_lock(path: Path | str) -> dict[str, Any]:
         "components": components,
         "environment": manifest.get("environment", {}),
     }
+    git = git_metadata(root)
+    if git is not None:
+        lock["git"] = git
+    return lock
 
 
 def write_lock(manifest_path: Path | str, output_path: Path | str | None = None) -> dict[str, Any]:

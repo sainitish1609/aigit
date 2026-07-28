@@ -54,6 +54,11 @@ def _manifest_path(path: str) -> Path:
 def _lock_check_view(lock_data: dict) -> dict:
     check_data = dict(lock_data)
     check_data.pop("generated_at", None)
+    git = check_data.get("git")
+    if isinstance(git, dict):
+        git_check = dict(git)
+        git_check.pop("is_dirty", None)
+        check_data["git"] = git_check
     return check_data
 
 
