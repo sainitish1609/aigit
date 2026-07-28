@@ -1,4 +1,4 @@
-from aigit_core.diffing import diff_locks
+from aigit_core.diffing import diff_locks, render_markdown_diff
 
 
 def base_lock():
@@ -92,3 +92,17 @@ def test_diff_reports_top_level_fingerprint_changes_as_implicit():
     ]
     assert {change["class"] for change in result["structural"]} == {"implicit"}
     assert result["summary"]["implicit"] == 2
+
+
+def test_render_markdown_diff_outputs_pr_comment_table():
+    before = base_lock()
+    after = base_lock()
+    after["components"]["main_model"]["resolved"]["model"] = "m2"
+    result = diff_locks(before, after)
+
+    markdown = render_markdown_diff(result)
+
+    assert markdown.startswith("## aigit diff\n")
+    assert "| Path | Class | Change | Before | After |" in markdown
+    assert "| components.main_model.model | behavior_affecting | modified | `m1` | `m2` |" in markdown
+    assert "Measured diff unavailable" in markdown

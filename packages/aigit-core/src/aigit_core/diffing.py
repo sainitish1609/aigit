@@ -45,6 +45,59 @@ def _classify_field(field_path: str) -> str:
     return "metadata"
 
 
+def _markdown_value(value: Any) -> str:
+    if value is None:
+        return "—"
+    if isinstance(value, (dict, list)):
+        rendered = json.dumps(value, sort_keys=True)
+    else:
+        rendered = str(value)
+    rendered = rendered.replace("`", "\\`").replace("|", "\\|").replace("\n", " ")
+    return f"`{rendered}`"
+
+
+def render_markdown_diff(result: dict[str, Any]) -> str:
+    summary = result.get("summary", {})
+    lines = [
+        "## aigit diff",
+        "",
+        (
+            f"**Summary:** {summary.get('total_changes', 0)} total; "
+            f"{summary.get('behavior_affecting', 0)} behavior-affecting; "
+            f"{summary.get('structural', 0)} structural; "
+            f"{summary.get('metadata', 0)} metadata; "
+            f"{summary.get('implicit', 0)} implicit."
+        ),
+        "",
+    ]
+    changes = result.get("structural", [])
+    if changes:
+        lines.extend([
+            "| Path | Class | Change | Before | After |",
+            "| --- | --- | --- | --- | --- |",
+        ])
+        for change in changes:
+            lines.append(
+                "| {path} | {class_} | {change} | {before} | {after} |".format(
+                    path=str(change.get("path", "")).replace("|", "\\|"),
+                    class_=str(change.get("class", "")).replace("|", "\\|"),
+                    change=str(change.get("change", "")).replace("|", "\\|"),
+                    before=_markdown_value(change.get("before")),
+                    after=_markdown_value(change.get("after")),
+                )
+            )
+        lines.append("")
+    else:
+        lines.extend(["No structural changes detected.", ""])
+
+    measured = result.get("measured", {})
+    if measured.get("available"):
+        lines.append("Measured diff available.")
+    else:
+        lines.append(f"Measured diff unavailable — {measured.get('reason', 'not provided')}.")
+    return "\n".join(lines) + "\n"
+
+
 def diff_locks(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
     changes: list[dict[str, Any]] = []
     before_components = before.get("components", {})

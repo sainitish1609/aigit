@@ -10,7 +10,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from aigit_core.diffing import diff_locks, load_lock
+from aigit_core.diffing import diff_locks, load_lock, render_markdown_diff
 from aigit_core.locking import LockError, load_manifest, resolve_lock, write_lock
 from aigit_core.models import json_schema
 from aigit_core.snapshot import create_snapshot
@@ -121,6 +121,9 @@ def diff(before: str, after: str, format: str = typer.Option("human", "--format"
     result = diff_locks(load_lock(before), load_lock(after))
     if format == "json":
         console.print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if format == "markdown":
+        console.print(render_markdown_diff(result), end="")
         return
     table = Table(title="STRUCTURAL")
     table.add_column("Path")

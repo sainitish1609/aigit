@@ -81,6 +81,38 @@ def test_snapshot_writes_snapshot_object(tmp_path: Path):
     assert len(snapshots) == 1
 
 
+def test_diff_renders_json(tmp_path: Path):
+    before = tmp_path / "before.json"
+    after = tmp_path / "after.json"
+    before.write_text(json.dumps({"components": {}}), encoding="utf-8")
+    after.write_text(json.dumps({"components": {"x": {"kind": "tool", "resolved": {}}}}), encoding="utf-8")
+
+    result = invoke_in(tmp_path, ["diff", str(before), str(after), "--format", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["summary"]["total_changes"] == 1
+
+
+def test_diff_renders_markdown(tmp_path: Path):
+    before = tmp_path / "before.json"
+    after = tmp_path / "after.json"
+    before.write_text(
+        json.dumps({"components": {"x": {"kind": "model", "resolved": {"kind": "model", "model": "m1"}}}}),
+        encoding="utf-8",
+    )
+    after.write_text(
+        json.dumps({"components": {"x": {"kind": "model", "resolved": {"kind": "model", "model": "m2"}}}}),
+        encoding="utf-8",
+    )
+
+    result = invoke_in(tmp_path, ["diff", str(before), str(after), "--format", "markdown"])
+
+    assert result.exit_code == 0
+    assert result.output.startswith("## aigit diff")
+    assert "| components.x.model | behavior_affecting | modified | `m1` | `m2` |" in result.output
+
+
 def test_doctor_detects_model_alias(tmp_path: Path):
     invoke_in(tmp_path, ["init"])
 
