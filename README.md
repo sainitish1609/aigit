@@ -219,6 +219,12 @@ Machine-readable output:
 aigit diff before.lock.json after.lock.json --format json
 ```
 
+Markdown output for PR comments or GitHub Step Summaries:
+
+```bash
+aigit diff before.lock.json after.lock.json --format markdown
+```
+
 Change classes:
 
 - `behavior_affecting` — model, params, file digest, retrieval/index/tool behavior config
@@ -286,6 +292,13 @@ python -m pip install -e '.[dev]'
 python -m pytest -q
 ```
 
+## GitHub Actions
+
+See [`docs/github-actions.md`](docs/github-actions.md) for workflows that:
+
+- run `aigit lock --check` on pull requests and pushes
+- render `aigit diff --format markdown` into a GitHub Step Summary or PR comment
+
 ## Release process
 
 Local release preparation:
@@ -324,7 +337,6 @@ PyPI publishing is handled by `.github/workflows/publish-pypi.yml` when a GitHub
 Next feature milestones:
 
 - richer manifest validation and conformance vectors
-- markdown diff renderer for PR comments
 - GitHub Action for structural diffs
 - eval runner with deterministic fake provider
 - CEL-based policy gates
