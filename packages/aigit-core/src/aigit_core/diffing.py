@@ -102,6 +102,17 @@ def diff_locks(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
                         "after": after_components[name].get(digest_field),
                     })
 
+    for fingerprint_field in ["exact_fingerprint", "behavioral_fingerprint"]:
+        if before.get(fingerprint_field) != after.get(fingerprint_field):
+            changes.append({
+                "path": fingerprint_field,
+                "kind": "lockfile",
+                "change": "modified",
+                "class": "implicit",
+                "before": before.get(fingerprint_field),
+                "after": after.get(fingerprint_field),
+            })
+
     return {
         "structural": changes,
         "measured": {

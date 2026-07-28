@@ -56,3 +56,39 @@ def test_diff_reports_measured_unavailable_when_no_evaluations():
 
     assert result["measured"]["available"] is False
     assert "no evaluation" in result["measured"]["reason"]
+
+
+def test_diff_reports_component_digest_changes_as_implicit_when_resolved_payload_matches():
+    before = base_lock()
+    after = base_lock()
+    after["components"]["prompt"]["digest"] = "sha256:new"
+
+    result = diff_locks(before, after)
+
+    assert result["structural"] == [
+        {
+            "path": "components.prompt.digest",
+            "kind": "prompt",
+            "change": "modified",
+            "class": "implicit",
+            "before": "sha256:p",
+            "after": "sha256:new",
+        }
+    ]
+    assert result["summary"]["implicit"] == 1
+
+
+def test_diff_reports_top_level_fingerprint_changes_as_implicit():
+    before = base_lock()
+    after = base_lock()
+    after["exact_fingerprint"] = "sha256:exact2"
+    after["behavioral_fingerprint"] = "sha256:beh2"
+
+    result = diff_locks(before, after)
+
+    assert [change["path"] for change in result["structural"]] == [
+        "exact_fingerprint",
+        "behavioral_fingerprint",
+    ]
+    assert {change["class"] for change in result["structural"]} == {"implicit"}
+    assert result["summary"]["implicit"] == 2
